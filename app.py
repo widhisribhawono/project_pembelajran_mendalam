@@ -86,7 +86,12 @@ try:
 except Exception as e:
     st.error("Gagal memuat model klasifikasi. Pastikan koneksi internet stabil.")
 
-label_mapping = {0: "Positif", 1: "Negatif", 2: "Netral"}
+# Pastikan urutan indeks ini sama persis dengan variabel label_mapping di Colab Anda
+label_labels = {0: "Positif", 1: "Negatif", 2: "Netral"}
+
+# Saat mengambil hasil prediksi tertinggi
+prediction_idx = torch.argmax(logits, dim=1).item()
+hasil_sentimen = label_labels[prediction_idx]
 
 # 4. Fungsi Preprocessing Minimal
 def clean_text(text):
