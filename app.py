@@ -67,7 +67,7 @@ st.markdown("""
         color: #0f172a;
     }
     </style>
-""", unsafe_index=True)
+""", unsafe_allow_html=True)
 
 # 2. Header Aplikasi (Minimalis & Profesional)
 st.markdown("<h1>Analisis Sentimen Komentar</h1>", unsafe_allow_html=True)
