@@ -83,10 +83,10 @@ def load_trained_model():
     # Jika folder model belum ada di server Streamlit, unduh otomatis dari Google Drive
     if not os.path.exists(folder_lokal):
         id_folder_drive = "1xd67jClhI8Yc81_xeM7LNL7FVq2hx0ZW"
-        url_drive = f"https://drive.google.com/drive/folders/{id_folder_drive}?usp=drive_link"
         
         with st.spinner("Sedang mengunduh model IndoBERT kelompok Anda dari Google Drive (ini hanya dilakukan sekali pada awal deploy)..."):
-            gdown.download_folder(url_drive, output=folder_lokal, quiet=True, remaining_ok=True)
+            # Menggunakan format ID langsung yang jauh lebih stabil untuk gdown
+            gdown.download_folder(id=id_folder_drive, output=folder_lokal, quiet=True, remaining_ok=True)
             
     # Muat model dan tokenizer dari folder lokal yang sudah diunduh
     tokenizer = AutoTokenizer.from_pretrained(folder_lokal)
