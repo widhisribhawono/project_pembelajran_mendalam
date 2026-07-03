@@ -67,7 +67,7 @@ st.markdown("""
         color: #0f172a;
     }
     </style>
-""", unsafe_index=True)
+""", unsafe_allow_html=True)
 
 # 2. Header Aplikasi (Minimalis & Profesional)
 st.markdown("<h1>Analisis Sentimen Komentar</h1>", unsafe_allow_html=True)
@@ -137,7 +137,7 @@ if submit_button:
         # Tampilan Hasil UI berbentuk Card Dashboard Eksklusif (Tanpa Emoji Berlebihan)
         st.markdown(f"""
             <div class="result-card {card_style}">
-                <div class="label-title">Hasil Klasifikasi Klasifikasi</div>
+                <div class="label-title">Hasil Analisis Sentimen</div>
                 <div class="label-value" style="color: {text_color};">{hasil_sentimen}</div>
             </div>
         """, unsafe_allow_html=True)
