@@ -2,8 +2,6 @@ import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import re, emoji
-import os
-import gdown
 
 # 1. Konfigurasi Halaman & Tema Elegan
 st.set_page_config(
@@ -12,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS untuk tampilan premium dan bersih
+# Custom CSS untuk menghilangkan kesan "Template AI standar"
 st.markdown("""
     <style>
     .main {
@@ -69,46 +67,28 @@ st.markdown("""
         color: #0f172a;
     }
     </style>
-""", unsafe_allow_html=True)
+""", unsafe_index=True)
 
 # 2. Header Aplikasi (Minimalis & Profesional)
 st.markdown("<h1>Analisis Sentimen Komentar</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>Sistem Klasifikasi Teks Komentar YouTube Mengenai Kebijakan Pembelajaran Mendalam Menggunakan Model IndoBERT</p>", unsafe_allow_html=True)
 
-# 3. Fungsi Mengunduh, Mengekstrak, & Memuat Model ZIP dari Google Drive
+# 3. Load Model & Tokenizer dengan Caching
 @st.cache_resource
-def load_trained_model():
-    folder_lokal = "model_sentimen_indobert"
-    file_zip_lokal = "model_sentimen_indobert.zip"
-    
-    # Jika folder model belum ada, unduh file ZIP dan ekstrak otomatis
-    if not os.path.exists(folder_lokal):
-        # !!! GANTI teks di bawah ini dengan ID file ZIP Google Drive Anda !!!
-        id_file_zip_drive = "1xd67jClhI8Yc81_xeM7LNL7FVq2hx0ZW"
-        
-        with st.spinner("Sedang mengunduh dan mengekstrak model IndoBERT kelompok Anda (proses ini hanya sekali di awal)..."):
-            # Unduh file tunggal .zip (jauh lebih stabil dan tidak diblokir Drive)
-            gdown.download(id=id_file_zip_drive, output=file_zip_lokal, quiet=True)
-            
-            # Ekstrak file zip secara otomatis di dalam server Streamlit
-            import zipfile
-            with zipfile.ZipFile(file_zip_lokal, 'r') as zip_ref:
-                zip_ref.extractall(".")
-                
-            # Hapus file zip mentah setelah diekstrak agar menghemat ruang server
-            if os.path.exists(file_zip_lokal):
-                os.remove(file_zip_lokal)
-            
-    # Muat model dan tokenizer dari folder lokal hasil ekstraksi
-    tokenizer = AutoTokenizer.from_pretrained(folder_lokal)
-    model = AutoModelForSequenceClassification.from_pretrained(folder_lokal, num_labels=3)
+def load_model():
+    model_name = "indobenchmark/indobert-base-p2"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=3)
     return tokenizer, model
-try:
-    tokenizer, model = load_trained_model()
-except Exception as e:
-    st.error("Gagal memuat model klasifikasi dari Google Drive. Pastikan folder Drive dapat diakses oleh siapa saja yang memiliki link.")
 
-# 4. Fungsi Preprocessing Teks
+try:
+    tokenizer, model = load_model()
+except Exception as e:
+    st.error("Gagal memuat model klasifikasi. Pastikan koneksi internet stabil.")
+
+label_mapping = {0: "Positif", 1: "Negatif", 2: "Netral"}
+
+# 4. Fungsi Preprocessing Minimal
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r'https?://\S+|www\.\S+', '', text)
@@ -124,29 +104,24 @@ user_input = st.text_area(
     height=120
 )
 
-# Layout tombol
+# Layout tombol agar presisi
 col1, col2 = st.columns([1, 4])
 with col1:
     submit_button = st.button("Analisis")
 
-# 6. Logika Eksekusi & Prediksi Model IndoBERT
+# 6. Logika Eksekusi & Tampilan Output UI Dashboard
 if submit_button:
     if user_input.strip() != "":
-        # Proses Data Teks
+        # Proses Data
         teks_bersih = clean_text(user_input)
         inputs = tokenizer(teks_bersih, return_tensors="pt", padding=True, truncation=True, max_length=128)
         
-        # Prediksi Menggunakan Model IndoBERT Hasil Latihan
+        # Prediksi
         with torch.no_grad():
             outputs = model(**inputs)
-            logits = outputs.logits  
+            prediction = torch.argmax(outputs.logits, dim=-1).item()
         
-        # Menentukan Indeks Prediksi Tertinggi
-        prediction_idx = torch.argmax(logits, dim=1).item()
-        
-        # Pemetaan Indeks Hasil Sesuai Pelatihan (0=Positif, 1=Negatif, 2=Netral)
-        label_labels = {0: "Positif", 1: "Negatif", 2: "Netral"}
-        hasil_sentimen = label_labels[prediction_idx]
+        hasil_sentimen = label_mapping[prediction]
         
         # Penentuan Desain Card Berdasarkan Hasil Klasifikasi
         if hasil_sentimen == "Positif":
@@ -159,10 +134,10 @@ if submit_button:
             card_style = "card-netral"
             text_color = "#d97706"
             
-        # Tampilan Hasil UI berbentuk Card Dashboard Eksklusif
+        # Tampilan Hasil UI berbentuk Card Dashboard Eksklusif (Tanpa Emoji Berlebihan)
         st.markdown(f"""
             <div class="result-card {card_style}">
-                <div class="label-title">Hasil Analisis Sentimen</div>
+                <div class="label-title">Hasil Klasifikasi Klasifikasi</div>
                 <div class="label-value" style="color: {text_color};">{hasil_sentimen}</div>
             </div>
         """, unsafe_allow_html=True)
