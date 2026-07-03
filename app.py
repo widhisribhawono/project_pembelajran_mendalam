@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS untuk menghilangkan kesan "Template AI standar"
+# Custom CSS untuk tampilan premium dan bersih
 st.markdown("""
     <style>
     .main {
@@ -73,7 +73,7 @@ st.markdown("""
 st.markdown("<h1>Analisis Sentimen Komentar</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>Sistem Klasifikasi Teks Komentar YouTube Mengenai Kebijakan Pembelajaran Mendalam Menggunakan Model IndoBERT</p>", unsafe_allow_html=True)
 
-# 3. Load Model & Tokenizer dengan Caching
+# 3. Load Model & Tokenizer IndoBERT dengan Caching
 @st.cache_resource
 def load_model():
     model_name = "indobenchmark/indobert-base-p2"
@@ -86,14 +86,7 @@ try:
 except Exception as e:
     st.error("Gagal memuat model klasifikasi. Pastikan koneksi internet stabil.")
 
-# Pastikan urutan indeks ini sama persis dengan variabel label_mapping di Colab Anda
-label_labels = {0: "Positif", 1: "Negatif", 2: "Netral"}
-
-# Saat mengambil hasil prediksi tertinggi
-prediction_idx = torch.argmax(logits, dim=1).item()
-hasil_sentimen = label_labels[prediction_idx]
-
-# 4. Fungsi Preprocessing Minimal
+# 4. Fungsi Preprocessing Teks
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r'https?://\S+|www\.\S+', '', text)
@@ -109,24 +102,29 @@ user_input = st.text_area(
     height=120
 )
 
-# Layout tombol agar presisi
+# Layout tombol
 col1, col2 = st.columns([1, 4])
 with col1:
     submit_button = st.button("Analisis")
 
-# 6. Logika Eksekusi & Tampilan Output UI Dashboard
+# 6. Logika Eksekusi & Prediksi Model IndoBERT
 if submit_button:
     if user_input.strip() != "":
-        # Proses Data
+        # Proses Data Teks
         teks_bersih = clean_text(user_input)
         inputs = tokenizer(teks_bersih, return_tensors="pt", padding=True, truncation=True, max_length=128)
         
-        # Prediksi
+        # Prediksi Menggunakan Model IndoBERT
         with torch.no_grad():
             outputs = model(**inputs)
-            prediction = torch.argmax(outputs.logits, dim=-1).item()
+            logits = outputs.logits  # Mengambil nilai logits dari model
         
-        hasil_sentimen = label_mapping[prediction]
+        # Menentukan Indeks Prediksi Tertinggi
+        prediction_idx = torch.argmax(logits, dim=1).item()
+        
+        # Pemetaan Indeks Hasil Sesuai Pelatihan (0=Positif, 1=Negatif, 2=Netral)
+        label_labels = {0: "Positif", 1: "Negatif", 2: "Netral"}
+        hasil_sentimen = label_labels[prediction_idx]
         
         # Penentuan Desain Card Berdasarkan Hasil Klasifikasi
         if hasil_sentimen == "Positif":
@@ -139,7 +137,7 @@ if submit_button:
             card_style = "card-netral"
             text_color = "#d97706"
             
-        # Tampilan Hasil UI berbentuk Card Dashboard Eksklusif (Tanpa Emoji Berlebihan)
+        # Tampilan Hasil UI berbentuk Card Dashboard Eksklusif
         st.markdown(f"""
             <div class="result-card {card_style}">
                 <div class="label-title">Hasil Analisis Sentimen</div>
