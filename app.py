@@ -137,7 +137,7 @@ if submit_button:
         # Tampilan Hasil UI berbentuk Card Dashboard Eksklusif (Tanpa Emoji Berlebihan)
         st.markdown(f"""
             <div class="result-card {card_style}">
-                <div class="label-title">Hasil Klasifikasi Klasifikasi</div>
+                <div class="label-title">Hasil Analisis Sentimen</div>
                 <div class="label-value" style="color: {text_color};">{hasil_sentimen}</div>
             </div>
         """, unsafe_allow_html=True)
