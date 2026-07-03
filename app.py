@@ -2,6 +2,8 @@ import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import re, emoji
+import os
+import gdown
 
 # 1. Konfigurasi Halaman & Tema Elegan
 st.set_page_config(
@@ -73,18 +75,28 @@ st.markdown("""
 st.markdown("<h1>Analisis Sentimen Komentar</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>Sistem Klasifikasi Teks Komentar YouTube Mengenai Kebijakan Pembelajaran Mendalam Menggunakan Model IndoBERT</p>", unsafe_allow_html=True)
 
-# 3. Load Model & Tokenizer IndoBERT dengan Caching
+# 3. Fungsi Mengunduh & Memuat Model dari Google Drive
 @st.cache_resource
-def load_model():
-    model_name = "indobenchmark/indobert-base-p2"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=3)
+def load_trained_model():
+    folder_lokal = "model_sentimen_indobert"
+    
+    # Jika folder model belum ada di server Streamlit, unduh otomatis dari Google Drive
+    if not os.path.exists(folder_lokal):
+        id_folder_drive = "1xd67jClhI8Yc81_xeM7LNL7FVq2hx0ZW"
+        url_drive = f"https://drive.google.com/drive/folders/{id_folder_drive}?usp=drive_link"
+        
+        with st.spinner("Sedang mengunduh model IndoBERT kelompok Anda dari Google Drive (ini hanya dilakukan sekali pada awal deploy)..."):
+            gdown.download_folder(url_drive, output=folder_lokal, quiet=True, remaining_ok=True)
+            
+    # Muat model dan tokenizer dari folder lokal yang sudah diunduh
+    tokenizer = AutoTokenizer.from_pretrained(folder_lokal)
+    model = AutoModelForSequenceClassification.from_pretrained(folder_lokal, num_labels=3)
     return tokenizer, model
 
 try:
-    tokenizer, model = load_model()
+    tokenizer, model = load_trained_model()
 except Exception as e:
-    st.error("Gagal memuat model klasifikasi. Pastikan koneksi internet stabil.")
+    st.error("Gagal memuat model klasifikasi dari Google Drive. Pastikan folder Drive dapat diakses oleh siapa saja yang memiliki link.")
 
 # 4. Fungsi Preprocessing Teks
 def clean_text(text):
@@ -114,10 +126,10 @@ if submit_button:
         teks_bersih = clean_text(user_input)
         inputs = tokenizer(teks_bersih, return_tensors="pt", padding=True, truncation=True, max_length=128)
         
-        # Prediksi Menggunakan Model IndoBERT
+        # Prediksi Menggunakan Model IndoBERT Hasil Latihan
         with torch.no_grad():
             outputs = model(**inputs)
-            logits = outputs.logits  # Mengambil nilai logits dari model
+            logits = outputs.logits  
         
         # Menentukan Indeks Prediksi Tertinggi
         prediction_idx = torch.argmax(logits, dim=1).item()
