@@ -75,24 +75,34 @@ st.markdown("""
 st.markdown("<h1>Analisis Sentimen Komentar</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>Sistem Klasifikasi Teks Komentar YouTube Mengenai Kebijakan Pembelajaran Mendalam Menggunakan Model IndoBERT</p>", unsafe_allow_html=True)
 
-# 3. Fungsi Mengunduh & Memuat Model dari Google Drive
+# 3. Fungsi Mengunduh, Mengekstrak, & Memuat Model ZIP dari Google Drive
 @st.cache_resource
 def load_trained_model():
     folder_lokal = "model_sentimen_indobert"
+    file_zip_lokal = "model_sentimen_indobert.zip"
     
-    # Jika folder model belum ada di server Streamlit, unduh otomatis dari Google Drive
+    # Jika folder model belum ada, unduh file ZIP dan ekstrak otomatis
     if not os.path.exists(folder_lokal):
-        id_folder_drive = "1xd67jClhI8Yc81_xeM7LNL7FVq2hx0ZW"
+        # !!! GANTI teks di bawah ini dengan ID file ZIP Google Drive Anda !!!
+        id_file_zip_drive = "1xd67jClhI8Yc81_xeM7LNL7FVq2hx0ZW"
         
-        with st.spinner("Sedang mengunduh model IndoBERT kelompok Anda dari Google Drive (ini hanya dilakukan sekali pada awal deploy)..."):
-            # Menggunakan format ID langsung yang jauh lebih stabil untuk gdown
-            gdown.download_folder(id=id_folder_drive, output=folder_lokal, quiet=True, remaining_ok=True)
+        with st.spinner("Sedang mengunduh dan mengekstrak model IndoBERT kelompok Anda (proses ini hanya sekali di awal)..."):
+            # Unduh file tunggal .zip (jauh lebih stabil dan tidak diblokir Drive)
+            gdown.download(id=id_file_zip_drive, output=file_zip_lokal, quiet=True)
             
-    # Muat model dan tokenizer dari folder lokal yang sudah diunduh
+            # Ekstrak file zip secara otomatis di dalam server Streamlit
+            import zipfile
+            with zipfile.ZipFile(file_zip_lokal, 'r') as zip_ref:
+                zip_ref.extractall(".")
+                
+            # Hapus file zip mentah setelah diekstrak agar menghemat ruang server
+            if os.path.exists(file_zip_lokal):
+                os.remove(file_zip_lokal)
+            
+    # Muat model dan tokenizer dari folder lokal hasil ekstraksi
     tokenizer = AutoTokenizer.from_pretrained(folder_lokal)
     model = AutoModelForSequenceClassification.from_pretrained(folder_lokal, num_labels=3)
     return tokenizer, model
-
 try:
     tokenizer, model = load_trained_model()
 except Exception as e:
